@@ -45,7 +45,9 @@ conn :: IO Connection
 conn = do
     user <- getConf "POSTGRES_USER"
     password <- getConf "POSTGRES_PASSWORD"
-    connectPostgreSQL $ genPostgreSQLConf $ ConfPostgreSQL user password Nothing Nothing
+    server <- getConf "POSTGRES_SERVER"
+    dbname <- getConf "POSTGRES_DBNAME"
+    connectPostgreSQL $ genPostgreSQLConf $ ConfPostgreSQL user password server dbname
 
 filterFiles :: [FilePath] -> [FilePath]
 filterFiles [] = []
