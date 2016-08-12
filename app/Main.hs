@@ -1,10 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-
-import Data.Maybe                   ( fromMaybe )
 import Data.ByteString.Char8        ( pack )
-import Data.Text                    ( Text )
+
 import Database.PostgreSQL.Simple   ( close
                                     , connectPostgreSQL
                                     , execute_
@@ -13,19 +11,18 @@ import Database.PostgreSQL.Simple   ( close
                                     , Only (..)
                                     , Query (..) )
 
-import System.Directory             ( getDirectoryContents )
-import System.IO                    ( FilePath )
-
 import Config                       ( genPostgreSQLConf
                                     , getConf
                                     , ConfPostgreSQL (..))
+
+import MigrationFile                ( migrationFiles )
 
 isInitial :: Connection -> IO Bool
 isInitial conn = do
     [Only i] <- query_ conn "SELECT count(*) FROM information_schema.tables WHERE table_name = 'haskell_postgres_migration';"
     return $ i == (0 :: Integer)
 
-lastMigration :: Connection -> IO (Maybe Integer)
+lastMigration :: Connection -> IO Integer
 lastMigration conn = do
     [Only i] <- query_ conn "SELECT version FROM haskell_postgres_migration order by timestamp desc limit 1;"
     return i
@@ -49,21 +46,6 @@ conn = do
     dbname <- getConf "POSTGRES_DBNAME"
     connectPostgreSQL $ genPostgreSQLConf $ ConfPostgreSQL user password server dbname
 
-filterFiles :: [FilePath] -> [FilePath]
-filterFiles [] = []
-filterFiles (x:xs)
-  | length x > 4 && (reverse . take 4 . reverse) x == ".sql"  = x : filterFiles xs
-  | otherwise        = filterFiles xs
-
-filterVersion :: Integer -> [FilePath] -> [(Integer, FilePath)]
-filterVersion _ [] = []
-filterVersion x (y:ys)
-  | x < version = (version, y) : filterVersion x ys
-  | otherwise             = filterVersion x ys
-    where version = read $ take 4 y :: Integer
-
-migrationFiles :: IO [FilePath]
-migrationFiles = getDirectoryContents ("migrations")
 
 readFiles :: String -> [FilePath] -> IO ()
 readFiles _ []  = return ()
@@ -86,7 +68,7 @@ applyMigration conn (version, path) = do
 applyMigrations :: Connection -> IO ()
 applyMigrations conn = do
     last <- lastMigration conn
-    allFiles <- fmap (filterVersion (fromMaybe 0 last) . filterFiles) migrationFiles
+    allFiles <- migrationFiles last
     sequence_ $ map (applyMigration conn) allFiles
     return ()
 
@@ -102,3 +84,4 @@ main = do
            conn >>= createMigrationSchema
     putStrLn "Migrating...."
     conn >>= applyMigrations
+    conn >>= close
