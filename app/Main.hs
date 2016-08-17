@@ -59,18 +59,17 @@ toQuery x = read $ show x ++ "":: Query
 
 applyMigration :: Connection -> (Integer, FilePath) -> IO ()
 applyMigration conn (version, path) = do
-    execute_ conn $ toQuery $ ("INSERT INTO haskell_postgres_migration (version) values (" ++ show version ++ ");")
     sql <- readFile $ "migrations/" ++ path
-    putStrLn $ "Migrating " ++ path
     execute_ conn $ toQuery sql
+    execute_ conn $ toQuery $ ("INSERT INTO haskell_postgres_migration (version) values (" ++ show version ++ ");")
+    putStrLn $ "Migrating " ++ path
     return ()
 
 applyMigrations :: Connection -> IO ()
 applyMigrations conn = do
     last <- lastMigration conn
     allFiles <- migrationFiles last
-    sequence_ $ map (applyMigration conn) allFiles
-    return ()
+    mapM_ (applyMigration conn) allFiles
 
 main :: IO ()
 main = do
