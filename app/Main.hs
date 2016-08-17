@@ -42,9 +42,9 @@ conn :: IO Connection
 conn = do
     user <- getConf "POSTGRES_USER"
     password <- getConf "POSTGRES_PASSWORD"
-    server <- getConf "POSTGRES_SERVER"
+    host <- getConf "POSTGRES_HOST"
     dbname <- getConf "POSTGRES_DBNAME"
-    connectPostgreSQL $ genPostgreSQLConf $ ConfPostgreSQL user password server dbname
+    connectPostgreSQL $ genPostgreSQLConf $ ConfPostgreSQL user password host dbname
 
 
 readFiles :: String -> [FilePath] -> IO ()

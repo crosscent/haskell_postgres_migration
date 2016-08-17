@@ -15,7 +15,7 @@ import Data.Maybe           ( fromMaybe )
 data ConfPostgreSQL = ConfPostgreSQL
     { getUsername   :: Maybe String
     , getPassword   :: Maybe String
-    , getServer     :: Maybe String
+    , getHost     :: Maybe String
     , getDatabase :: Maybe String
     }
 
@@ -38,8 +38,8 @@ genPostgreSQLConf' _ Nothing = ""
 genPostgreSQLConf' header (Just x) = header ++ x
 
 genPostgreSQLConf :: ConfPostgreSQL -> ByteString
-genPostgreSQLConf x = pack $ intercalate " " $ filter (\x -> length x > 0) $ [ username, password, server, database ]
+genPostgreSQLConf x = pack $ intercalate " " $ filter (\x -> length x > 0) $ [ username, password, host, database ]
     where username = genPostgreSQLConf' "user=" $ getUsername x
           password = genPostgreSQLConf' "password=" $ getPassword x
-          server = genPostgreSQLConf' "server=" $ getServer x
+          host = genPostgreSQLConf' "host=" $ getHost x
           database = genPostgreSQLConf' "database=" $ getDatabase x
